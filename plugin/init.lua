@@ -22,7 +22,11 @@ function plugin_package_path()
     ["%"]  = "sPs",
   }
 
+  -- The fork comes first: a stale upstream checkout may also be cached, and
+  -- loading modules from it alongside this init.lua mixes incompatible versions.
   local components = {
+    string.format("https://github.com/alfaix/%s", basename),
+    string.format("https://github.com/alfaix/%s/", basename),
     string.format("https://github.com/michaelbrusegard/%s", basename),
     string.format("https://github.com/michaelbrusegard/%s/", basename),
     string.format("http://github.com/michaelbrusegard/%s", basename),
@@ -40,9 +44,9 @@ function plugin_package_path()
   components[#components+1] = basename
 
   local plugin, plugin_subdir, my_package_subdir = {}, "", nil
-  for _, plugin in ipairs(wezterm.plugin.list()) do
-    plugin_subdir = plugin.component
-    for i = 1, #components do
+  for i = 1, #components do
+    for _, plugin in ipairs(wezterm.plugin.list()) do
+      plugin_subdir = plugin.component
 
       -- this one covers both (https:// and http://) cause ":" is translated to "sCs"
       if plugin_subdir:sub(1, 5) == "https" then
