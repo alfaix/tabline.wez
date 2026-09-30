@@ -37,8 +37,17 @@ return {
         result = tostring(tonumber(total:match('%d+')) - tonumber(free:match('%d+')))
       end
     elseif string.match(wezterm.target_triple, 'linux') ~= nil then
-      success, result =
-        wezterm.run_child_process { 'bash', '-c', 'free -m | LC_NUMERIC=C awk \'NR==2{printf "%.2f", $3/1000 }\'' }
+      local file = io.open('/proc/meminfo', 'r')
+      if file then
+        local meminfo = file:read('*a')
+        file:close()
+        local total = tonumber(meminfo:match('MemTotal:%s+(%d+)'))
+        local available = tonumber(meminfo:match('MemAvailable:%s+(%d+)'))
+        success = total ~= nil and available ~= nil
+        if success then
+          result = (total - available) / 1024 / 1024
+        end
+      end
     elseif string.match(wezterm.target_triple, 'darwin') ~= nil then
       success, result = wezterm.run_child_process { 'vm_stat' }
     elseif string.match(wezterm.target_triple, 'freebsd') ~= nil then

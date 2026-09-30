@@ -300,6 +300,7 @@ And the `tab_active` and `tab_inactive` components which are grouped under Tab a
   - `datetime` (current date and time)
   - `domain` (current domain)
   - `hostname` (hostname of the machine)
+  - `network` (download and upload speed, Linux only)
   - `ram` (ram used in GB)
   - `window` (window title)
   - `workspace` (active wezterm workspace)
@@ -575,6 +576,22 @@ sections = {
       'cpu',
       throttle = 3, -- How often in seconds the component updates, set to 0 to disable throttling
       use_pwsh = false, -- If you want use powershell, set to true. default is false
+    },
+  },
+}
+```
+
+#### network component options
+
+```lua
+sections = {
+  tabline_a = {
+    {
+      'network',
+      throttle = 3, -- How often in seconds the component updates
+      interfaces = nil, -- List of interfaces to sum, e.g. { 'eth0' }. Defaults to all physical interfaces
+      down_icon = wezterm.nerdfonts.md_arrow_down,
+      up_icon = wezterm.nerdfonts.md_arrow_up,
     },
   },
 }

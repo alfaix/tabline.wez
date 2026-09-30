@@ -3,6 +3,39 @@ local wezterm = require('wezterm')
 local last_update_time = 0
 local last_result = ''
 local last_sample = nil
+local last_linux_total, last_linux_idle = 0, 0
+
+-- Usage is computed from the delta between two /proc/stat samples; the raw
+-- counters are cumulative since boot. The first call yields the since-boot average.
+local function linux_cpu_usage()
+  local file = io.open('/proc/stat', 'r')
+  if not file then
+    return nil
+  end
+  local line = file:read('*l')
+  file:close()
+
+  -- Fields: user nice system idle iowait irq softirq steal (guest is already counted in user).
+  local total, idle, i = 0, 0, 0
+  for value in line:gmatch('%d+') do
+    i = i + 1
+    if i > 8 then
+      break
+    end
+    value = tonumber(value)
+    total = total + value
+    if i == 4 or i == 5 then
+      idle = idle + value
+    end
+  end
+
+  local d_total, d_idle = total - last_linux_total, idle - last_linux_idle
+  last_linux_total, last_linux_idle = total, idle
+  if d_total <= 0 then
+    return nil
+  end
+  return tostring((d_total - d_idle) * 100 / d_total)
+end
 
 return {
   default_opts = {
@@ -31,11 +64,11 @@ return {
         }
       end
     elseif string.match(wezterm.target_triple, 'linux') ~= nil then
-      success, result = wezterm.run_child_process {
-        'bash',
-        '-c',
-        "LC_NUMERIC=C awk '/^cpu / {print ($2+$4)*100/($2+$4+$5)}' /proc/stat",
-      }
+      result = linux_cpu_usage()
+      if not result then
+        return last_result
+      end
+      success = true
     elseif string.match(wezterm.target_triple, 'darwin') ~= nil then
       success, result = wezterm.run_child_process {
         'bash',
